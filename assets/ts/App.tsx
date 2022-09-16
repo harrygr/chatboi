@@ -1,9 +1,9 @@
 import * as React from "react";
-import { ChannelProvider } from "./components/ChannelContext";
 
 import { ChatRoom } from "./components/ChatRoom";
 import { IntroForm } from "./components/IntroForm";
 import { createQueryStore } from "./queryStorage";
+import { SocketProvider } from "./SocketContext";
 import { createStore } from "./storage";
 
 const nameStore = createStore("chatboi_username");
@@ -42,9 +42,9 @@ export const App: React.FC<Props> = ({}) => {
   return (
     <div className="p-6">
       {username && room && inRoom ? (
-        <ChannelProvider name={`room:${room}`}>
+        <SocketProvider>
           <ChatRoom room={room} username={username} leaveChat={leaveChat} />
-        </ChannelProvider>
+        </SocketProvider>
       ) : (
         <IntroForm
           enterChat={enterChat}

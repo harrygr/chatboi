@@ -1,17 +1,19 @@
 import * as React from "react";
 import * as t from "io-ts";
 import { SubmitHandler, useForm } from "react-hook-form";
+import { DateFromISOString } from "io-ts-types";
 
 import { pipe } from "fp-ts/lib/function";
 import * as E from "fp-ts/Either";
 import * as A from "fp-ts/Array";
-import { useChannel } from "./ChannelContext";
+import { useChannel } from "../useChannel";
+import { useChannelEvent } from "../useChannelEvent";
 
 type ConnectionState = "connected" | "connecting" | "disconnected";
 
 const ChatMessage = t.type({
   id: t.string,
-  sent_at: t.string,
+  sent_at: DateFromISOString,
   body: t.string,
   author: t.string,
 });
@@ -33,21 +35,19 @@ export const ChatRoom: React.FC<Props> = ({ room, leaveChat, username }) => {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
 
   const { register, handleSubmit, setValue } = useForm<Fields>();
-  const { connectionState, channel } = useChannel();
+  const { connectionState, channel } = useChannel(`room:${room}`);
 
-  React.useEffect(() => {
-    const handler = (payload: unknown) => {
+  const handler = React.useCallback(
+    (payload: unknown) =>
       pipe(
         payload,
         ChatMessage.decode,
         E.map((newMessage) => setMessages(A.concat([newMessage])))
-      );
-    };
+      ),
+    []
+  );
 
-    const ref = channel.on("msg", handler);
-
-    return () => channel.off("msg", ref);
-  });
+  useChannelEvent(channel, "msg", handler);
 
   const onSubmit: SubmitHandler<Fields> = (data) => {
     if (channel) {

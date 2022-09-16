@@ -1,14 +1,11 @@
 import { Channel } from "phoenix";
 import React from "react";
-import { socket } from "./socket";
+import { useSocket } from "./SocketContext";
 
 type ConnectionState = "connected" | "connecting" | "disconnected";
 
-export const useChannel = (
-  name: string,
-  topic: string,
-  cb: (payload: unknown) => void
-) => {
+export const useChannel = (name: string) => {
+  const socket = useSocket();
   const channel = React.useRef<Channel | null>(null);
   const [connectionState, setConnectionState] =
     React.useState<ConnectionState>("disconnected");
@@ -22,16 +19,16 @@ export const useChannel = (
     channel.current
       .join()
       .receive("ok", (resp) => {
-        console.log("Joined successfully", resp);
+        console.info(`Successfully joined channel: ${name}`, resp);
         setConnectionState("connected");
       })
       .receive("error", (resp) => {
         setConnectionState("disconnected");
-        console.log("Unable to join", resp);
+        console.warn(`Unable to join channel: ${name}`, resp);
       });
-    channel.current.on(topic, cb);
+
     return () => {
-      console.log("closing channel");
+      console.info(`Leaving channel: ${name}`);
       channel.current?.leave();
     };
   }, [name]);
