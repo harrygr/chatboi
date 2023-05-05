@@ -54,6 +54,7 @@ export const ChatRoom: React.FC<Props> = ({ room, leaveChat, username }) => {
       roomStore.setState(null);
     }
   }, []);
+  const chatForm = React.useRef<HTMLFormElement | null>(null);
 
   const { register, handleSubmit, setValue } = useForm<Fields>();
   const { connectionState, channel } = useChannel(
@@ -111,7 +112,11 @@ export const ChatRoom: React.FC<Props> = ({ room, leaveChat, username }) => {
         <div className="font-bold">Room:</div>
         <div className="font-mono text-xl">{room}</div>
       </h1>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-4"
+        ref={chatForm}
+      >
         <div>
           <label htmlFor={`${id}-message`}>Message</label>
           <textarea
@@ -119,7 +124,21 @@ export const ChatRoom: React.FC<Props> = ({ room, leaveChat, username }) => {
             className="block w-full max-w-lg h-auto"
             autoComplete="off"
             {...register("message", { required: true })}
+            onKeyDown={(event) => {
+              if (
+                event.key === "Enter" &&
+                (event.metaKey || event.shiftKey) &&
+                chatForm.current
+              ) {
+                chatForm.current.dispatchEvent(
+                  new Event("submit", { bubbles: true, cancelable: true })
+                );
+              }
+            }}
           />
+          <p className="text-xs text-gray-400">
+            Hint: Press Cmd+Enter to submit
+          </p>
         </div>
         <div className="flex gap-2">
           <button type="submit" className="bg-teal-900 text-white px-6 py-2">
