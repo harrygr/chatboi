@@ -15,5 +15,8 @@ defmodule Chatboi.Chat.ChatMessage do
     chat_message
     |> cast(attrs, [:message, :author, :room])
     |> validate_required([:message, :author, :room])
+    |> validate_length(:message, min: 2, max: 800)
+    |> validate_length(:author, min: 2, max: 250)
+    |> validate_length(:room, min: 2, max: 250)
   end
 end

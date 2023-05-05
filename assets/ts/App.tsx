@@ -7,7 +7,7 @@ import { SocketProvider } from "./SocketContext";
 import { createStore } from "./storage";
 
 const nameStore = createStore("chatboi_username");
-const roomStore = createQueryStore("room");
+export const roomStore = createQueryStore("room");
 
 interface Props {}
 

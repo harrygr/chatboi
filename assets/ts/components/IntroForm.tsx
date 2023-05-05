@@ -33,6 +33,8 @@ export const IntroForm: React.FC<Props> = ({ enterChat, initialFields }) => {
     }
   };
 
+  console.log(errors);
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
@@ -43,7 +45,7 @@ export const IntroForm: React.FC<Props> = ({ enterChat, initialFields }) => {
           type="text"
           {...register("username", {
             required: "Enter your name",
-            minLength: 3,
+            minLength: { value: 3, message: "Must be at least 3 characters" },
           })}
           id={`${id}-username`}
           className="block"
@@ -61,11 +63,13 @@ export const IntroForm: React.FC<Props> = ({ enterChat, initialFields }) => {
             type="text"
             {...register("room", {
               required: "Enter a room ID",
-              minLength: 3,
+              minLength: { value: 3, message: "Must be at least 3 characters" },
+              maxLength: { value: 250, message: "Max 250 characters" },
             })}
             id={`${id}-room`}
             className="block"
           />
+
           <button
             type="button"
             onClick={generateRandom}

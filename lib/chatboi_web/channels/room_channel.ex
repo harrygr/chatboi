@@ -12,12 +12,22 @@ defmodule ChatboiWeb.RoomChannel do
         %{"message" => body, "author" => author},
         %Phoenix.Socket{topic: "room:" <> room_id} = socket
       ) do
-    {:ok, chat_message} =
-      Chatboi.Chat.create_chat_message(%{message: body, author: author, room: room_id})
+    case Chatboi.Chat.create_chat_message(%{message: body, author: author, room: room_id}) do
+      {:ok, chat_message} ->
+        broadcast!(socket, "msg", encode_chat(chat_message))
+        {:noreply, socket}
 
-    broadcast!(socket, "msg", encode_chat(chat_message))
+      {:error, changeset} ->
+        errors =
+          Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+            Enum.reduce(opts, msg, fn {key, value}, acc ->
+              String.replace(acc, "%{#{key}}", to_string(value))
+            end)
+          end)
+          |> Enum.map(fn {key, errors} -> "#{key} #{Enum.join(errors, ", ")}" end)
 
-    {:noreply, socket}
+        {:reply, {:ok, %{errors: errors}}, socket}
+    end
   end
 
   # Channels can be used in a request/response fashion
