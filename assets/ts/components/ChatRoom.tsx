@@ -13,10 +13,12 @@ type ConnectionState = "connected" | "connecting" | "disconnected";
 
 const ChatMessage = t.type({
   id: t.string,
-  sent_at: DateFromISOString,
-  body: t.string,
+  inserted_at: DateFromISOString,
+  message: t.string,
   author: t.string,
 });
+
+const InitialPayload = t.type({ initial_chats: t.array(ChatMessage) });
 
 type ChatMessage = t.TypeOf<typeof ChatMessage>;
 
@@ -35,14 +37,33 @@ export const ChatRoom: React.FC<Props> = ({ room, leaveChat, username }) => {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
 
   const { register, handleSubmit, setValue } = useForm<Fields>();
-  const { connectionState, channel } = useChannel(`room:${room}`);
+  const { connectionState, channel } = useChannel(
+    `room:${room}`,
+    (joinPayload) => {
+      pipe(
+        joinPayload,
+        InitialPayload.decode,
+        E.fold(
+          (error) => {
+            console.error("Failed to parse chat message", error);
+          },
+          (payload) => setMessages(payload.initial_chats)
+        )
+      );
+    }
+  );
 
   const handler = React.useCallback(
     (payload: unknown) =>
       pipe(
         payload,
         ChatMessage.decode,
-        E.map((newMessage) => setMessages(A.concat([newMessage])))
+        E.fold(
+          (error) => {
+            console.error("Failed to parse chat message", error);
+          },
+          (newMessage) => setMessages(A.prepend(newMessage))
+        )
       ),
     []
   );
@@ -51,7 +72,7 @@ export const ChatRoom: React.FC<Props> = ({ room, leaveChat, username }) => {
 
   const onSubmit: SubmitHandler<Fields> = (data) => {
     if (channel) {
-      channel.push("msg", { body: data.message, author: username });
+      channel.push("msg", { message: data.message, author: username });
       setValue("message", "");
     }
   };
@@ -101,7 +122,7 @@ export const ChatRoom: React.FC<Props> = ({ room, leaveChat, username }) => {
       <div>
         {messages.map((m) => (
           <div key={m.id}>
-            <span className="font-semibold">{m.author}:</span> {m.body}
+            <span className="font-semibold">{m.author}:</span> {m.message}
           </div>
         ))}
       </div>

@@ -4,7 +4,10 @@ import { useSocket } from "./SocketContext";
 
 type ConnectionState = "connected" | "connecting" | "disconnected";
 
-export const useChannel = (name: string) => {
+export const useChannel = (
+  name: string,
+  onJoin: (payload: unknown) => void = () => null
+) => {
   const socket = useSocket();
   const channel = React.useRef<Channel | null>(null);
   const [connectionState, setConnectionState] =
@@ -20,6 +23,7 @@ export const useChannel = (name: string) => {
       .join()
       .receive("ok", (resp) => {
         console.info(`Successfully joined channel: ${name}`, resp);
+        onJoin(resp);
         setConnectionState("connected");
       })
       .receive("error", (resp) => {
