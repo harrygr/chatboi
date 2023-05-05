@@ -82,9 +82,16 @@ export const IntroForm: React.FC<Props> = ({ enterChat, initialFields }) => {
           <p className="text-xs text-rose-600">{errors.room.message}</p>
         ) : null}
       </div>
-      <button type="submit" className="bg-teal-900 text-white px-6 py-2">
-        Enter the chat
-      </button>
+
+      <div className="flex gap-3">
+        <button type="submit" className="bg-teal-900 text-white px-6 py-2">
+          Enter the chat
+        </button>
+
+        <a href="/?room=lobby" className=" bg-yellow-400 block px-6 py-2">
+          Lobby
+        </a>
+      </div>
     </form>
   );
 };

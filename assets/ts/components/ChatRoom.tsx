@@ -121,7 +121,7 @@ export const ChatRoom: React.FC<Props> = ({ room, leaveChat, username }) => {
           <label htmlFor={`${id}-message`}>Message</label>
           <textarea
             id={`${id}-message`}
-            className="block w-full max-w-lg h-auto"
+            className="block w-full max-w-lg h-auto border-gray-400 rounded"
             autoComplete="off"
             {...register("message", { required: true })}
             onKeyDown={(event) => {
