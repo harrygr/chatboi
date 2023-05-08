@@ -1,8 +1,9 @@
-import { Channel } from "phoenix";
+import { Channel, Presence } from "phoenix";
 import React from "react";
 import { useSocket } from "./SocketContext";
 
 type ConnectionState = "connected" | "connecting" | "disconnected";
+type PresenceItem = [string, Array<{ online_at: number }>];
 
 export const useChannel = (
   name: string,
@@ -11,6 +12,9 @@ export const useChannel = (
 ) => {
   const socket = useSocket();
   const channel = React.useRef<Channel | null>(null);
+
+  const [visitors, setVisitors] = React.useState<PresenceItem[]>([]);
+
   const [connectionState, setConnectionState] =
     React.useState<ConnectionState>("disconnected");
 
@@ -20,6 +24,18 @@ export const useChannel = (
     if (!channel.current) {
       return;
     }
+    const presence = new Presence(channel.current);
+
+    presence.onSync(() => {
+      const items: PresenceItem[] = [];
+
+      presence.list((name, meta) => {
+        items.push([name, meta]);
+      });
+
+      setVisitors(items);
+    });
+
     channel.current
       .join()
       .receive("ok", (resp) => {
@@ -38,5 +54,10 @@ export const useChannel = (
     };
   }, [name]);
 
-  return { connectionState, channel: channel.current };
+  return {
+    connectionState,
+    channel: channel.current,
+
+    visitors,
+  };
 };

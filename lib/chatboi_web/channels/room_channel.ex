@@ -1,6 +1,8 @@
 defmodule ChatboiWeb.RoomChannel do
   use ChatboiWeb, :channel
 
+  alias ChatboiWeb.Presence
+
   @impl true
   def join("room:" <> room_id, payload, socket) do
     initial_chats = Chatboi.Chat.list_for_room(room_id) |> Enum.map(&encode_chat/1)
@@ -12,17 +14,14 @@ defmodule ChatboiWeb.RoomChannel do
 
   @impl true
   def handle_info(:after_join, socket) do
-    visitors = Chatboi.RoomVisitors.add_visitor(socket.assigns.room, socket.assigns.username)
+    {:ok, _} =
+      Presence.track(socket, socket.assigns.username, %{
+        online_at: inspect(System.system_time(:second))
+      })
 
-    broadcast(socket, "user_joined", %{"visitors" => MapSet.to_list(visitors)})
+    push(socket, "presence_state", Presence.list(socket))
+
     {:noreply, socket}
-  end
-
-  @impl true
-  def terminate(_reason, socket) do
-    visitors = Chatboi.RoomVisitors.remove_visitor(socket.assigns.room, socket.assigns.username)
-
-    broadcast(socket, "user_left", %{"visitors" => MapSet.to_list(visitors)})
   end
 
   def handle_in(

@@ -8,7 +8,6 @@ import * as E from "fp-ts/Either";
 import * as A from "fp-ts/Array";
 import { useChannel } from "../useChannel";
 import { useChannelEvent } from "../useChannelEvent";
-import { roomStore } from "../App";
 
 type ConnectionState = "connected" | "connecting" | "disconnected";
 
@@ -48,18 +47,13 @@ const formatChatTime = (timestamp: Date) => {
 export const ChatRoom: React.FC<Props> = ({ room, leaveChat, username }) => {
   const id = React.useId();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
-  const [visitors, setVisitors] = React.useState<string[]>([]);
+
   const [errors, setErrors] = React.useState<Array<string>>([]);
 
-  React.useEffect(() => {
-    if (room.length < 3 || room.length > 250) {
-      roomStore.setState(null);
-    }
-  }, []);
   const chatForm = React.useRef<HTMLFormElement | null>(null);
 
   const { register, handleSubmit, setValue } = useForm<Fields>();
-  const { connectionState, channel } = useChannel(
+  const { connectionState, channel, visitors } = useChannel(
     `room:${room}`,
     { username },
     (joinPayload) => {
@@ -91,17 +85,7 @@ export const ChatRoom: React.FC<Props> = ({ room, leaveChat, username }) => {
     []
   );
 
-  const handleVisitorChange = (payload: unknown) => {
-    pipe(
-      payload,
-      VisitorsPayload.decode,
-      E.map(({ visitors }) => setVisitors(visitors))
-    );
-  };
-
   useChannelEvent(channel, "msg", handler);
-  useChannelEvent(channel, "user_joined", handleVisitorChange);
-  useChannelEvent(channel, "user_left", handleVisitorChange);
 
   const onSubmit: SubmitHandler<Fields> = (data) => {
     setErrors([]);
@@ -125,7 +109,7 @@ export const ChatRoom: React.FC<Props> = ({ room, leaveChat, username }) => {
         <div className="font-bold">Room:</div>
         <div className="font-mono text-xl">{room}</div>
       </h1>
-      <div className="grid grid-cols-6 gap-4">
+      <div className="md:grid grid-cols-6 gap-4">
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="space-y-4 col-span-4"
@@ -176,7 +160,7 @@ export const ChatRoom: React.FC<Props> = ({ room, leaveChat, username }) => {
         <div className="col-span-2 text-right">
           <h2 className="font-semibold">Online</h2>
           <ul>
-            {visitors.map((v) => (
+            {visitors.map(([v]) => (
               <li key={v} className="text-teal-700">
                 {v} {v === username ? "(You)" : null}
               </li>
