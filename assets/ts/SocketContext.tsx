@@ -11,7 +11,7 @@ export const SocketProvider: React.FC<Props> = ({ children }) => {
   const [socket, setSocket] = React.useState<Socket | null>(null);
 
   React.useEffect(() => {
-    const socket = new Socket("/socket");
+    const socket = new Socket("/socket", {});
     socket.connect();
     setSocket(socket);
 

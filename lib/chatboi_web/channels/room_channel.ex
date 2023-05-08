@@ -2,9 +2,27 @@ defmodule ChatboiWeb.RoomChannel do
   use ChatboiWeb, :channel
 
   @impl true
-  def join("room:" <> room_id, _payload, socket) do
+  def join("room:" <> room_id, payload, socket) do
     initial_chats = Chatboi.Chat.list_for_room(room_id) |> Enum.map(&encode_chat/1)
-    {:ok, %{initial_chats: initial_chats}, socket}
+    send(self(), :after_join)
+
+    {:ok, %{initial_chats: initial_chats},
+     socket |> assign(username: payload["username"], room: room_id)}
+  end
+
+  @impl true
+  def handle_info(:after_join, socket) do
+    visitors = Chatboi.RoomVisitors.add_visitor(socket.assigns.room, socket.assigns.username)
+
+    broadcast(socket, "user_joined", %{"visitors" => MapSet.to_list(visitors)})
+    {:noreply, socket}
+  end
+
+  @impl true
+  def terminate(_reason, socket) do
+    visitors = Chatboi.RoomVisitors.remove_visitor(socket.assigns.room, socket.assigns.username)
+
+    broadcast(socket, "user_left", %{"visitors" => MapSet.to_list(visitors)})
   end
 
   def handle_in(
@@ -52,7 +70,7 @@ defmodule ChatboiWeb.RoomChannel do
          inserted_at: inserted_at
        }) do
     %{
-      id: "#{id}",
+      id: "chat:#{id}",
       message: message,
       author: author,
       inserted_at: DateTime.from_naive!(inserted_at, "Etc/UTC")

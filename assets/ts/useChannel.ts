@@ -6,6 +6,7 @@ type ConnectionState = "connected" | "connecting" | "disconnected";
 
 export const useChannel = (
   name: string,
+  params: Record<string, any> = {},
   onJoin: (payload: unknown) => void = () => null
 ) => {
   const socket = useSocket();
@@ -15,7 +16,7 @@ export const useChannel = (
 
   React.useEffect(() => {
     setConnectionState("connecting");
-    channel.current = socket.channel(name);
+    channel.current = socket.channel(name, params);
     if (!channel.current) {
       return;
     }

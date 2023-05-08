@@ -15,7 +15,8 @@ defmodule Chatboi.Application do
       # Start the PubSub system
       {Phoenix.PubSub, name: Chatboi.PubSub},
       # Start the Endpoint (http/https)
-      ChatboiWeb.Endpoint
+      ChatboiWeb.Endpoint,
+      Chatboi.RoomVisitors
       # Start a worker by calling: Chatboi.Worker.start_link(arg)
       # {Chatboi.Worker, arg}
     ]

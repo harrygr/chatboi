@@ -22,6 +22,7 @@ const ChatMessage = t.type({
 const InitialPayload = t.type({ initial_chats: t.array(ChatMessage) });
 
 const ErrorResponse = t.type({ errors: t.array(t.string) });
+const VisitorsPayload = t.type({ visitors: t.array(t.string) });
 
 type ChatMessage = t.TypeOf<typeof ChatMessage>;
 
@@ -47,6 +48,7 @@ const formatChatTime = (timestamp: Date) => {
 export const ChatRoom: React.FC<Props> = ({ room, leaveChat, username }) => {
   const id = React.useId();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
+  const [visitors, setVisitors] = React.useState<string[]>([]);
   const [errors, setErrors] = React.useState<Array<string>>([]);
 
   React.useEffect(() => {
@@ -59,6 +61,7 @@ export const ChatRoom: React.FC<Props> = ({ room, leaveChat, username }) => {
   const { register, handleSubmit, setValue } = useForm<Fields>();
   const { connectionState, channel } = useChannel(
     `room:${room}`,
+    { username },
     (joinPayload) => {
       pipe(
         joinPayload,
@@ -88,7 +91,17 @@ export const ChatRoom: React.FC<Props> = ({ room, leaveChat, username }) => {
     []
   );
 
+  const handleVisitorChange = (payload: unknown) => {
+    pipe(
+      payload,
+      VisitorsPayload.decode,
+      E.map(({ visitors }) => setVisitors(visitors))
+    );
+  };
+
   useChannelEvent(channel, "msg", handler);
+  useChannelEvent(channel, "user_joined", handleVisitorChange);
+  useChannelEvent(channel, "user_left", handleVisitorChange);
 
   const onSubmit: SubmitHandler<Fields> = (data) => {
     setErrors([]);
@@ -112,52 +125,65 @@ export const ChatRoom: React.FC<Props> = ({ room, leaveChat, username }) => {
         <div className="font-bold">Room:</div>
         <div className="font-mono text-xl">{room}</div>
       </h1>
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="space-y-4"
-        ref={chatForm}
-      >
-        <div>
-          <label htmlFor={`${id}-message`}>Message</label>
-          <textarea
-            id={`${id}-message`}
-            className="block w-full max-w-lg h-auto border-gray-400 rounded"
-            autoComplete="off"
-            {...register("message", { required: true })}
-            onKeyDown={(event) => {
-              if (
-                event.key === "Enter" &&
-                (event.metaKey || event.shiftKey) &&
-                chatForm.current
-              ) {
-                chatForm.current.dispatchEvent(
-                  new Event("submit", { bubbles: true, cancelable: true })
-                );
-              }
-            }}
-          />
-          <p className="text-xs text-gray-400">
-            Hint: Press Cmd+Enter to submit
-          </p>
+      <div className="grid grid-cols-6 gap-4">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-4 col-span-4"
+          ref={chatForm}
+        >
+          <div>
+            <label htmlFor={`${id}-message`}>Message</label>
+            <textarea
+              id={`${id}-message`}
+              className="block w-full max-w-lg h-auto border-gray-400 rounded"
+              autoComplete="off"
+              {...register("message", { required: true })}
+              onKeyDown={(event) => {
+                if (
+                  event.key === "Enter" &&
+                  (event.metaKey || event.shiftKey) &&
+                  chatForm.current
+                ) {
+                  chatForm.current.dispatchEvent(
+                    new Event("submit", { bubbles: true, cancelable: true })
+                  );
+                }
+              }}
+            />
+            <p className="text-xs text-gray-400">
+              Hint: Press Cmd+Enter to submit
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button type="submit" className="bg-teal-900 text-white px-6 py-2">
+              Send
+            </button>
+            <button
+              type="button"
+              className="bg-rose-400 px-6 py-2"
+              onClick={leaveChat}
+            >
+              Leave chat
+            </button>
+          </div>
+          <div className="text-red-700">
+            {errors.map((error) => (
+              <p key={error}>{error}</p>
+            ))}
+          </div>
+        </form>
+
+        <div className="col-span-2 text-right">
+          <h2 className="font-semibold">Online</h2>
+          <ul>
+            {visitors.map((v) => (
+              <li key={v} className="text-teal-700">
+                {v} {v === username ? "(You)" : null}
+              </li>
+            ))}
+          </ul>
         </div>
-        <div className="flex gap-2">
-          <button type="submit" className="bg-teal-900 text-white px-6 py-2">
-            Send
-          </button>
-          <button
-            type="button"
-            className="bg-rose-400 px-6 py-2"
-            onClick={leaveChat}
-          >
-            Leave chat
-          </button>
-        </div>
-        <div className="text-red-700">
-          {errors.map((error) => (
-            <p key={error}>{error}</p>
-          ))}
-        </div>
-      </form>
+      </div>
       <div className="flex gap-2 items-center mb-3">
         <div
           className={`w-4 h-4 inline-block rounded-full ${
